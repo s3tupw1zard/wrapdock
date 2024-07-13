@@ -160,6 +160,39 @@ set_script_user() {
     whiptail --msgbox "User set." 10 70
 }
 
+update_container_env_list() {
+    template_url="https://raw.githubusercontent.com/s3tupw1zard/wrapdock.sh/main/env/containers.env.template"
+    local_file="$HOME/.wrapdock/containers.env"
+    output_file="/tmp/containers.env.merged"
+
+    # Download the template file from the URL and save it in a temporary folder
+    temp_template_file=$(mktemp)
+    curl -s "$template_url" > "$temp_template_file"
+
+    # Copy the local version to the output file
+    cp "$local_file" "$output_file"
+
+    # Loop over each line in the template file
+    while IFS= read -r template_line; do
+        # Check if the line already exists in the local file
+        if ! grep -qF "$template_line" "$local_file"; then
+            # Add the line to the output file if it does not exist
+            echo "$template_line" >> "$output_file"
+        fi
+    done < "$temp_template_file"
+
+    # Delete the temporary template file
+    rm "$temp_template_file"
+
+    echo "Merging completed. Result in $output_file"
+
+    # Moving $output_file to $local_file
+    mv $local_file $HOME/.wrapdock/containers.env.bak-$(date +"%Y-%m-%d")
+    mv $output_file $local_file
+    rm $output_file
+    echo "$local_file updated."
+    }
+
 # Manage Containers menu
 manage_containers_menu() {
     if [ "$1" = "help" ]; then
