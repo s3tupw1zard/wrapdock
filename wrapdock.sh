@@ -160,7 +160,17 @@ set_script_user() {
     whiptail --msgbox "User set." 10 70
 }
 
+install_container_env_list() {
+    # TODO: Update to reflect the actual .wrapdock folder the user chose
+    template_url="https://raw.githubusercontent.com/s3tupw1zard/wrapdock.sh/main/env/containers.env.template"
+    local_file="$HOME/.wrapdock/containers.env"
+
+    # Download the template file from the URL and save it into the .wrapdock folder
+    curl -s "$template_url" > "$local_file"
+    }
+
 update_container_env_list() {
+    # TODO: Update to reflect the actual .wrapdock folder the user chose
     template_url="https://raw.githubusercontent.com/s3tupw1zard/wrapdock.sh/main/env/containers.env.template"
     local_file="$HOME/.wrapdock/containers.env"
     output_file="/tmp/containers.env.merged"
