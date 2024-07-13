@@ -1,78 +1,9 @@
 #!/bin/bash
 
 # Path to the configuration file
-CONFIG_FILE="$HOME/.wrapdock/.wrapdock.env"
+CONFIG_FILE="$HOME/.my_script_config"
 
-# Function for the initial configuration
-first_run_setup() {
-    sudo apt install dialog -y
-    dialog  --timeout 10 --clear --backtitle "Initial configuration" --msgbox "First time run. Please configure the environment variables on the next screens." 10 40
-    
-    # Entering the environment variables
-    username=$(dialog --clear --inputbox "Please type in a username under which this script should always be run:" 10 40 2>&1 >/dev/tty)
-    wrapdock_working_directory=$(dialog --clear --inputbox "Please type in your working directory for WebDock: example: /srv/$username/wrapdock" 10 40 2>&1 >/dev/tty)
-    backup_folder=$(dialog --clear --inputbox "Please type in your preferred sub-folder for backups:" 10 40 2>&1 >/dev/tty)
-    storage_folder=$(dialog --clear --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 40 2>&1 >/dev/tty)
-
-    default_data_folder="$wrapdock_working_directory/data"
-    dialog --clear --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 40
-    response=$?
-    if [ $response -eq 0 ]; then
-        data_folder=$(dialog --clear --inputbox "Please type in your preferred data folder location:" 10 40 2>&1 >/dev/tty)
-    else
-        data_folder=$default_data_folder
-    fi
-
-    # Creating folder to store the .wrapdock.env inside.
-    mkdir -p $HOME/.wrapdock
-
-    # Saving the environment variables
-    cat <<EOF > "$CONFIG_FILE"
-USERNAME=$username
-WEBDOCK_FOLDER=$wrapdock_folder
-BACKUP_FOLDER=$backup_folder
-STORAGE_FOLDER=$storage_folder
-DATA_FOLDER=$data_folder
-EOF
-
-    dialog --timeout 10 --clear --msgbox "Saved configuration. Continuing automatically in 10 seconds." 10 40
-
-    # Installation and setup
-    install_dependencies
-    setup_folders
-    set_script_user
-}
-
-# Dependency installation function
-install_dependencies() {
-    if [ -f "/etc/apt/sources.list.d/docker.list" ]; then
-        dialog --timeout 5 --clear --msgbox "Docker repository already installed, installing only packages without adding repository..." 10 40
-        sudo apt-get update
-        sudo apt-get install -y docker docker-compose-plugin docker-buildx-plugin
-        dialog --timeout 10 --clear --msgbox "Installed dependencies." 10 40
-    else
-        dialog --timeout 5 --clear --msgbox "Docker repository not found, adding it including Docker packages using get.docker.com" 10 40
-        sudo apt install curl -y
-        curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-        dialog --timeout 10 --clear --msgbox "Installed dependencies." 10 40
-    fi
-}
-
-# Function for setting up the folder structure
-setup_folders() {
-    dialog --timeout 5 --clear --msgbox "Setting up the folder structure..." 10 40
-    mkdir -p "$wrapdock_working_directory" "$wrapdock_working_directory/$backup_folder" "$wrapdock_working_directory/$storage_folder/downloads" "$wrapdock_working_directory/$storage_folder/media" "$wrapdock_working_directory/$data_folder"
-    dialog --timeout 10 --clear --msgbox "Folder structure set up." 10 40
-}
-
-# Function to specify the user with which the script should always be executed
-set_script_user($username $wrapdock_working_directory) {
-    dialog --timeout 5 --clear --msgbox "Setting the user for this script..." 10 40
-    sudo chown -R $username:$username "$wrapdock_working_directory" $HOME/.wrapdock
-    dialog --timeout 10 --clear --msgbox "User set." 10 40
-}
-
-# Main menu function
+# Function for displaying main menu
 main_menu() {
     while true; do
         cmd=(dialog --clear --backtitle "Main menu" --menu "Choose an option:" 15 50 10)
@@ -98,6 +29,96 @@ main_menu() {
         esac
     done
 }
+
+# Function to display help information
+show_help() {
+    local command="$1"
+    case "$command" in
+        manage)
+            cat << EOF
+Manage Containers:
+
+This command allows you to manage Docker containers.
+Available options:
+1. Install containers
+2. Update containers
+3. Uninstall containers
+4. Restart containers
+5. Stop containers
+6. Recreate containers
+
+Usage: $0 manage [option]
+EOF
+            ;;
+        backup)
+            cat << EOF
+Backup Containers:
+
+This command allows you to backup Docker containers.
+Available options:
+1. Backup
+2. View backups
+3. Restore backups
+4. Delete backups
+
+Usage: $0 backup [option]
+EOF
+            ;;
+        settings)
+            cat << EOF
+Settings:
+
+This command allows you to configure settings related to Docker and other components.
+Available options:
+1. Show Docker disk usage
+2. Traefik setup and management
+3. Security with Authelia
+
+Usage: $0 settings [option]
+EOF
+            ;;
+        cleanup)
+            cat << EOF
+Cleanup:
+
+This command allows you to perform cleanup operations.
+Available options:
+1. Remove unused Docker images
+
+Usage: $0 cleanup [option]
+EOF
+            ;;
+        update)
+            cat << EOF
+Update WrapDock:
+
+This command allows you to update the WrapDock script itself.
+
+Usage: $0 update
+EOF
+            ;;
+        uninstall)
+            cat << EOF
+Uninstall WrapDock:
+
+This command allows you to uninstall the WrapDock script.
+
+Usage: $0 uninstall
+EOF
+            ;;
+        *)
+            cat << EOF
+Invalid command: $command
+
+Usage: $0 [command] [option]
+EOF
+            ;;
+    esac
+}
+
+# Example usage of the show_help function
+show_help "$1"
+
 
 # Manage Containers menu
 manage_containers_menu() {
@@ -222,7 +243,7 @@ cleanup_menu() {
 # Function to update the script
 update_script() {
     dialog --clear --msgbox "Updating script..." 10 40
-    # Add the update process here
+    # Add update process here
     dialog --clear --msgbox "Script updated." 10 40
 }
 
@@ -231,7 +252,7 @@ uninstall_script() {
     dialog --clear --yesno "Are you sure you want to uninstall this script?" 10 40
     response=$?
     if [ $response -eq 0 ]; then
-        # Add the uninstall process here
+        # Add uninstall process here
         dialog --clear --msgbox "Script uninstalled." 10 40
     else
         dialog --clear --msgbox "Uninstallation cancelled." 10 40
@@ -243,7 +264,44 @@ if [ ! -f "$CONFIG_FILE" ]; then
     first_run_setup
 else
     source "$CONFIG_FILE"
-fi
+    # Check for subcommands
+    if [ $# -eq 0 ]; then
+        echo "No subcommand provided. Please provide a subcommand to proceed."
+        echo "Example: $0 manage"
+        exit 1
+    fi
 
-# Start the main menu
-main_menu
+    # Handle subcommands
+    case "$1" in
+        manage)
+            manage_containers_menu
+            ;;
+        backup)
+            backup_containers_menu
+            ;;
+        settings)
+            settings_menu
+            ;;
+        cleanup)
+            cleanup_menu
+            ;;
+        update)
+            update_script
+            ;;
+        uninstall)
+            uninstall_script
+            ;;
+        help)
+            if [ $# -eq 1 ]; then
+                show_help
+            else
+                show_help "$2"
+            fi
+            ;;
+        *)
+            echo "Invalid subcommand: $1"
+            echo "Available subcommands: manage, backup, settings, cleanup, update, uninstall, help"
+            exit 1
+            ;;
+    esac
+fi
