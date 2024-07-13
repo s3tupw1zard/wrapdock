@@ -91,20 +91,21 @@ EOF
 
 # Function for the initial configuration
 first_run_setup() {
-    sudo apt install dialog -y
-    dialog --timeout 10 --clear --backtitle "Initial configuration" --msgbox "First time run. Please configure the environment variables on the next screens." 10 40
+    sudo apt install whiptail -y
+    whiptail --title "Initial Configuration" --msgbox \
+    "First time run. Please configure the environment variables on the next screens." 10 70
     
     # Entering the environment variables
-    username=$(dialog --clear --inputbox "Please type in a username under which this script should always be run:" 10 40 2>&1 >/dev/tty)
-    wrapdock_working_directory=$(dialog --clear --inputbox "Please type in your working directory for WebDock: example: /srv/$username/wrapdock" 10 40 2>&1 >/dev/tty)
-    backup_folder=$(dialog --clear --inputbox "Please type in your preferred sub-folder for backups:" 10 40 2>&1 >/dev/tty)
-    storage_folder=$(dialog --clear --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 40 2>&1 >/dev/tty)
+    username=$(whiptail --inputbox "Please type in a username under which this script should always be run:" 10 70 2>&1 >/dev/tty)
+    wrapdock_working_directory=$(whiptail --inputbox "Please type in your working directory for WebDock: example: /srv/$username/wrapdock" 10 70 2>&1 >/dev/tty)
+    backup_folder=$(whiptail --inputbox "Please type in your preferred sub-folder for backups:" 10 70 2>&1 >/dev/tty)
+    storage_folder=$(whiptail --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 70 2>&1 >/dev/tty)
 
     default_data_folder="$wrapdock_working_directory/data"
-    dialog --clear --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 40
+    whiptail --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 70
     response=$?
     if [ $response -eq 0 ]; then
-        data_folder=$(dialog --clear --inputbox "Please type in your preferred data folder location:" 10 40 2>&1 >/dev/tty)
+        data_folder=$(whiptail --inputbox "Please type in your preferred data folder location:" 10 70 2>&1 >/dev/tty)
     else
         data_folder=$default_data_folder
     fi
@@ -121,7 +122,8 @@ STORAGE_FOLDER=$storage_folder
 DATA_FOLDER=$data_folder
 EOF
 
-    dialog --timeout 10 --clear --msgbox "Saved configuration. Continuing automatically in 10 seconds." 10 40
+    whiptail --title "Configuration Saved" --msgbox \
+    "Saved configuration. Continuing automatically in 10 seconds." 10 70
 
     # Installation and setup
     install_dependencies
@@ -132,30 +134,30 @@ EOF
 # Dependency installation function
 install_dependencies() {
     if [ -f "/etc/apt/sources.list.d/docker.list" ]; then
-        dialog --timeout 5 --clear --msgbox "Docker repository already installed, installing only packages without adding repository..." 10 40
+        whiptail --msgbox "Docker repository already installed, installing only packages without adding repository..." 10 70
         sudo apt-get update
         sudo apt-get install -y docker docker-compose-plugin docker-buildx-plugin
-        dialog --timeout 10 --clear --msgbox "Installed dependencies." 10 40
+        whiptail --msgbox "Installed dependencies." 10 70
     else
-        dialog --timeout 5 --clear --msgbox "Docker repository not found, adding it including Docker packages using get.docker.com" 10 40
+        whiptail --msgbox "Docker repository not found, adding it including Docker packages using get.docker.com" 10 70
         sudo apt install curl -y
         curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-        dialog --timeout 10 --clear --msgbox "Installed dependencies." 10 40
+        whiptail --msgbox "Installed dependencies." 10 70
     fi
 }
 
 # Function for setting up the folder structure
 setup_folders() {
-    dialog --timeout 5 --clear --msgbox "Setting up the folder structure..." 10 40
+    whiptail --msgbox "Setting up the folder structure..." 10 70
     mkdir -p "$wrapdock_working_directory" "$wrapdock_working_directory/$backup_folder" "$wrapdock_working_directory/$storage_folder/downloads" "$wrapdock_working_directory/$storage_folder/media" "$wrapdock_working_directory/$data_folder"
-    dialog --timeout 10 --clear --msgbox "Folder structure set up." 10 40
+    whiptail --msgbox "Folder structure set up." 10 70
 }
 
 # Function to specify the user with which the script should always be executed
 set_script_user() {
-    dialog --timeout 5 --clear --msgbox "Setting the user for this script..." 10 40
+    whiptail --msgbox "Setting the user for this script..." 10 70
     sudo chown -R "$username":"$username" "$wrapdock_working_directory" "$HOME/.wrapdock"
-    dialog --timeout 10 --clear --msgbox "User set." 10 40
+    whiptail --msgbox "User set." 10 70
 }
 
 # Manage Containers menu
@@ -165,16 +167,14 @@ manage_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Manage containers" --menu "Choose an option:" 15 50 6)
-    options=(
-        1 "Install containers"
-        2 "Update containers"
-        3 "Uninstall containers"
-        4 "Restart containers"
-        5 "Stop containers"
-        6 "Recreate containers"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Manage Containers" --menu "Choose an option:" 15 70 6 \
+        "1" "Install containers" \
+        "2" "Update containers" \
+        "3" "Uninstall containers" \
+        "4" "Restart containers" \
+        "5" "Stop containers" \
+        "6" "Recreate containers" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) install_containers_menu;;
@@ -183,6 +183,7 @@ manage_containers_menu() {
         4) restart_containers_menu;;
         5) stop_containers_menu;;
         6) recreate_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -193,18 +194,17 @@ install_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Install containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Install Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) install_all_containers;;
         2) install_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -215,18 +215,17 @@ update_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Update containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Update Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) update_all_containers;;
         2) update_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -237,18 +236,17 @@ uninstall_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Uninstall containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Uninstall Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) uninstall_all_containers;;
         2) uninstall_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -259,18 +257,17 @@ restart_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Restart containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Restart Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) restart_all_containers;;
         2) restart_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -281,18 +278,17 @@ stop_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Stop containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Stop Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) stop_all_containers;;
         2) stop_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -303,18 +299,17 @@ recreate_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Recreate containers" --menu "Choose an option:" 15 50 3)
-    options=(
-        1 "All"
-        2 "By Category"
-        3 "Back to previous menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Recreate Containers" --menu "Choose an option:" 15 70 3 \
+        "1" "All" \
+        "2" "By Category" \
+        "3" "Back to previous menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) recreate_all_containers;;
         2) recreate_containers_by_category;;
         3) manage_containers_menu;;
+        *) exit 0;;
     esac
 }
 
@@ -325,20 +320,19 @@ backup_containers_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Backup containers" --menu "Choose an option:" 15 50 4)
-    options=(
-        1 "Backup"
-        2 "View backups"
-        3 "Restore backups"
-        4 "Delete backups"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Backup Containers" --menu "Choose an option:" 15 70 4 \
+        "1" "Backup" \
+        "2" "View backups" \
+        "3" "Restore backups" \
+        "4" "Delete backups" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) backup;;
         2) view_backups;;
         3) restore_backups;;
         4) delete_backups;;
+        *) exit 0;;
     esac
 }
 
@@ -349,20 +343,19 @@ settings_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Settings" --menu "Choose an option:" 15 50 4)
-    options=(
-        1 "Show Docker disk usage"
-        2 "Traefik setup and management"
-        3 "Security with Authelia"
-        4 "Back to main menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Settings" --menu "Choose an option:" 15 70 4 \
+        "1" "Show Docker disk usage" \
+        "2" "Traefik setup and management" \
+        "3" "Security with Authelia" \
+        "4" "Back to main menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) show_docker_disk_usage;;
         2) traefik_setup;;
         3) authelia_security;;
         4) return;;
+        *) exit 0;;
     esac
 }
 
@@ -373,16 +366,15 @@ cleanup_menu() {
         exit 0
     fi
 
-    cmd=(dialog --clear --backtitle "Cleanup" --menu "Choose an option:" 15 50 2)
-    options=(
-        1 "Remove unused Docker images"
-        2 "Back to main menu"
-    )
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    choice=$(whiptail --title "Cleanup" --menu "Choose an option:" 15 70 2 \
+        "1" "Remove unused Docker images" \
+        "2" "Back to main menu" \
+        3>&1 1>&2 2>&3)
     clear
     case $choice in
         1) prune_unused_images;;
         2) return;;
+        *) exit 0;;
     esac
 }
 
@@ -393,9 +385,10 @@ update_script() {
         exit 0
     fi
 
-    dialog --clear --msgbox "Updating WrapDock script..." 10 40
+    whiptail --title "Update WrapDock" --msgbox \
+    "Updating WrapDock script..." 10 70
     # Add update script logic here
-    dialog --clear --msgbox "WrapDock script updated." 10 40
+    whiptail --msgbox "WrapDock script updated." 10 70
 }
 
 # Uninstall WrapDock script
@@ -405,14 +398,14 @@ uninstall_script() {
         exit 0
     fi
 
-    dialog --clear --yesno "Are you sure you want to uninstall WrapDock?" 10 40
+    whiptail --yesno "Are you sure you want to uninstall WrapDock?" 10 70
     response=$?
     if [ $response -eq 0 ]; then
-        dialog --clear --msgbox "Uninstalling WrapDock script..." 10 40
+        whiptail --msgbox "Uninstalling WrapDock script..." 10 70
         # Add uninstall script logic here
-        dialog --clear --msgbox "WrapDock script uninstalled." 10 40
+        whiptail --msgbox "WrapDock script uninstalled." 10 70
     else
-        dialog --clear --msgbox "Uninstallation cancelled." 10 40
+        whiptail --msgbox "Uninstallation cancelled." 10 70
     fi
 }
 
@@ -430,17 +423,15 @@ main_menu() {
     fi
 
     while true; do
-        cmd=(dialog --clear --backtitle "Main menu" --menu "Choose an option:" 15 50 10)
-        options=(
-            1 "Manage containers"
-            2 "Backup containers"
-            3 "Settings"
-            4 "Cleanup"
-            5 "Update WrapDock"
-            6 "Uninstall WrapDock"
-            7 "Quit"
-        )
-        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        choice=$(whiptail --title "Main Menu" --menu "Choose an option:" 15 70 7 \
+            "1" "Manage containers" \
+            "2" "Backup containers" \
+            "3" "Settings" \
+            "4" "Cleanup" \
+            "5" "Update WrapDock" \
+            "6" "Uninstall WrapDock" \
+            "7" "Quit" \
+            3>&1 1>&2 2>&3)
         clear
         case $choice in
             1) manage_containers_menu;;
@@ -450,6 +441,7 @@ main_menu() {
             5) update_script;;
             6) uninstall_script;;
             7) break;;
+            *) exit 0;;
         esac
     done
 }
@@ -467,6 +459,7 @@ if [ "$1" = "menu" ]; then
     exit 0
 fi
 
+# Display help if no arguments provided
 show_menu_help() {
     cat << EOF
 Command Help:
@@ -479,6 +472,8 @@ $0 uninstall         -   Uninstall WrapDock
 EOF
 }
 
+
+# Display help if no arguments provided
 if [ $# -eq 0 ]; then
     >&2 echo "No arguments provided, showing help:"
     >&2 echo "---------------------------------------------------------------------------------------------------"
