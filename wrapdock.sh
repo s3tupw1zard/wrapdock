@@ -144,11 +144,24 @@ create_wrapdock_user() {
     wrapdock_user_password=$(create_wrapdock_user_password)
     wrapdock_user_home_folder=$(set_wrapdock_home_folder)
 
+    if user_exists "$wrapdock_username"; then
+        echo "Error: User $wrapdock_username already existing."
+        exit 1
+    fi
+
     # Create the new user with bash as the default shell
     useradd -m -d "$wrapdock_user_home_folder" -s /bin/bash "$wrapdock_username"
 
     # Set the user's password
     echo "$wrapdock_username:$wrapdock_user_password" | chpasswd
+
+    # 
+    cat <<EOF >> "$wrapdock_user_home_folder/wrapdock.env"
+WRAPDOCK_USERNAME=$wrapdock_username
+WRAPDOCK_PASSWORD=$wrapdock_password
+WRAPDOCK_USER_HOME_FOLDER=$wrapdock_user_home_folder
+EOF
+
 
     # Confirm user creation
     if [ $? -eq 0 ]; then
@@ -171,8 +184,6 @@ first_run_setup() {
     backup_folder=$(whiptail --inputbox "Please type in your preferred sub-folder for backups:" 10 70 2>&1 >/dev/tty)
     storage_folder=$(whiptail --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 70 2>&1 >/dev/tty)
 
-    create_wrapdock_user
-
     default_data_folder="$wrapdock_working_directory/data"
     whiptail --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 70
     response=$?
@@ -186,10 +197,7 @@ first_run_setup() {
     mkdir -p $wrapdock_user_home_folder
 
     # Saving the environment variables
-    cat <<EOF > "$wrapdock_user_home_folder/wrapdock.env"
-WRAPDOCK_USERNAME=$wrapdock_username
-WRAPDOCK_PASSWORD=$wrapdock_password
-WRAPDOCK_USER_HOME_FOLDER=$wrapdock_user_home_folder
+    cat <<EOF >> "$wrapdock_user_home_folder/wrapdock.env"
 WEBDOCK_FOLDER=$wrapdock_working_directory
 BACKUP_FOLDER=$backup_folder
 STORAGE_FOLDER=$storage_folder
@@ -577,6 +585,10 @@ if [ "$1" = "menu" ]; then
     exit 0
 fi
 
+if [ "$1" = setup-user ]; then
+    create_wrapdock_user
+fi
+
 # Display help if no arguments provided
 show_menu_help() {
     cat << EOF
@@ -586,6 +598,7 @@ $0 backup [option]   -   Backup containers, view them, restore or delete backups
 $0 settings [option] -   Show disk usage, set up Traefik or authelia
 $0 cleanup [option]  -   Cleanup all unused docker images
 $0 update            -   Update WrapDock to the latest version and update env file for available containers
+$0 setup-user        -   Set up an user to use with Wrapdock
 $0 uninstall         -   Uninstall WrapDock
 EOF
 }
