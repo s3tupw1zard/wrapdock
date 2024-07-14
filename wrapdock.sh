@@ -122,7 +122,7 @@ STORAGE_FOLDER=$storage_folder
 DATA_FOLDER=$data_folder
 EOF
 
-    whiptail --title "Configuration Saved" --msgbox \
+    timeout 10 whiptail --title "Configuration Saved" --msgbox \
     "Saved configuration. Continuing automatically in 10 seconds." 10 70
 
     # Installation and setup
@@ -136,30 +136,29 @@ EOF
 # Dependency installation function
 install_dependencies() {
     if [ -f "/etc/apt/sources.list.d/docker.list" ]; then
-        whiptail --msgbox "Docker repository already installed, installing only packages without adding repository..." 10 70
+        timeout 8 whiptail --msgbox "Docker repository already installed, installing only packages without adding repository..." 10 70
         sudo apt-get update
-        sudo apt-get install -y docker docker-compose-plugin docker-buildx-plugin
-        whiptail --msgbox "Installed dependencies." 10 70
+        sudo apt-get install -y docker docker-compose-plugin docker-buildx-plugin && timeout 5 whiptail --msgbox "Successfully installed dependencies." 10 70 || whiptail --msgbox "Dependency installation failed. Please check your apt sources configuration." 10 70
     else
-        whiptail --msgbox "Docker repository not found, adding it including Docker packages using get.docker.com" 10 70
+        timeout 8 whiptail --msgbox "Docker repository not found, adding it including Docker packages using get.docker.com" 10 70
         sudo apt install curl -y
-        curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-        whiptail --msgbox "Installed dependencies." 10 70
+        sudo apt install apt-transport-https
+        curl -sSL https://get.docker.com/ | CHANNEL=stable bash && timeout 5 whiptail --msgbox "Installed dependencies." 10 70 || whiptail --msgbox "Seems like the Docker install script failed or the docker command already exists. Please check your apt sources configuration." 10 70
     fi
 }
 
 # Function for setting up the folder structure
 setup_folders() {
-    whiptail --msgbox "Setting up the folder structure..." 10 70
+    timeout 5 whiptail --msgbox "Setting up the folder structure..." 10 70
     mkdir -p "$wrapdock_working_directory" "$wrapdock_working_directory/$backup_folder" "$wrapdock_working_directory/$storage_folder/downloads" "$wrapdock_working_directory/$storage_folder/media" "$wrapdock_working_directory/$data_folder"
-    whiptail --msgbox "Folder structure set up." 10 70
+    timetout 5 whiptail --msgbox "Folder structure set up." 10 70
 }
 
 # Function to specify the user with which the script should always be executed
 set_script_user() {
-    whiptail --msgbox "Setting the user for this script..." 10 70
+    timeout 5 whiptail --msgbox "Setting the user for this script..." 10 70
     sudo chown -R "$username":"$username" "$wrapdock_working_directory" "$HOME/.wrapdock"
-    whiptail --msgbox "User set." 10 70
+    timeout 5 whiptail --msgbox "User set." 10 70
 }
 
 install_container_env_list() {
@@ -424,7 +423,7 @@ cleanup_menu() {
 }
 
 # Update WrapDock script
-update_script() {
+update_wrapdock() {
     if [ "$1" = "help" ]; then
         show_help "update"
         exit 0
@@ -437,7 +436,7 @@ update_script() {
 }
 
 # Uninstall WrapDock script
-uninstall_script() {
+uninstall_wrapdock() {
     if [ "$1" = "help" ]; then
         show_help "uninstall"
         exit 0
@@ -483,8 +482,8 @@ main_menu() {
             2) backup_containers_menu;;
             3) settings_menu;;
             4) cleanup_menu;;
-            5) update_script;;
-            6) uninstall_script;;
+            5) update_wrapdock;;
+            6) uninstall_wrapdock;;
             7) break;;
             *) exit 0;;
         esac
@@ -512,7 +511,7 @@ $0 manage [option]   -   Install, update, uninstall, restart, stop or recreate c
 $0 backup [option]   -   Backup containers, view them, restore or delete backups
 $0 settings [option] -   Show disk usage, set up Traefik or authelia
 $0 cleanup [option]  -   Cleanup all unused docker images
-$0 update            -   Update WrapDock to the latest version
+$0 update            -   Update WrapDock to the latest version and update env file for available containers
 $0 uninstall         -   Uninstall WrapDock
 EOF
 }
