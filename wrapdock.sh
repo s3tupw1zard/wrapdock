@@ -183,10 +183,10 @@ first_run_setup() {
     fi
 
     # Creating folder to store the .wrapdock.env inside.
-    mkdir -p $WRAPDOCK_HOME
+    mkdir -p $wrapdock_user_home_folder
 
     # Saving the environment variables
-    cat <<EOF > "$WRAPDOCK_HOME/wrapdock.env"
+    cat <<EOF > "$wrapdock_user_home_folder/wrapdock.env"
 WRAPDOCK_USERNAME=$wrapdock_username
 WRAPDOCK_PASSWORD=$wrapdock_password
 WRAPDOCK_USER_HOME_FOLDER=$wrapdock_user_home_folder
@@ -565,10 +565,10 @@ main_menu() {
 }
 
 # Check if the configuration file exists
-if [ ! -f "$WRAPDOCK_HOME/wrapdock.env" ]; then
+if [ ! -f "$$HOME/.wrapdock/wrapdock.env" ]; then
     first_run_setup
 else
-    source "$WRAPDOCK_HOME/wrapdock.env"
+    source "$HOME/.wrapdock/wrapdock.env"
 fi
 
 # Main menu entry point
