@@ -129,6 +129,8 @@ EOF
     install_dependencies
     setup_folders
     set_script_user
+
+    install_container_env_list
 }
 
 # Dependency installation function
