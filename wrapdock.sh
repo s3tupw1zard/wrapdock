@@ -125,6 +125,40 @@ create_wrapdock_user_password() {
     echo $wrapdock_password
 }
 
+set_wrapdock_home_folder() {
+    local wrapdock_user_home=$(whiptail --inputbox "Please enter a home folder fdor your new user:" 10 70 2>&1 >/dev/tty)
+
+    # Check if home folder is empty
+    if [ -z "$wrapdock_user_home" ]; then
+        whiptail --msgbox "Home folder is empty. Continuing..." 8 39 --title "Home folder empty"
+        echo $wrapdock_user_home
+        exit 1
+    else
+        whiptail --msgbox "Home folder needs to be empty. Please provide another path" 8 39 --title "Home folder not empty"
+        set_wrapdock_home_folder
+    fi
+}
+
+create_wrapdock_user() {
+    wrapdock_username=$(create_wrapdock_username)
+    wrapdock_user_password=$(create_wrapdock_user_password)
+    wrapdock_user_home_folder=$(set_wrapdock_home_folder)
+
+    # Create the new user with bash as the default shell
+    useradd -m -d "$wrapdock_user_home_folder" -s /bin/bash "$wrapdock_username"
+
+    # Set the user's password
+    echo "$wrapdock_username:$wrapdock_user_password" | chpasswd
+
+    # Confirm user creation
+    if [ $? -eq 0 ]; then
+        whiptail --msgbox "The user $wrapdock_username has been created successfully." 8 39 --title "Success"
+    else
+        whiptail --msgbox "Failed to create the user $wrapdock_username." 8 39 --title "Error"
+        exit 1
+    fi
+}
+
 # Function for the initial configuration
 first_run_setup() {
     sudo apt install whiptail -y
@@ -137,8 +171,7 @@ first_run_setup() {
     backup_folder=$(whiptail --inputbox "Please type in your preferred sub-folder for backups:" 10 70 2>&1 >/dev/tty)
     storage_folder=$(whiptail --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 70 2>&1 >/dev/tty)
 
-    wrapdock_username=$(create_wrapdock_username)
-    wrapdock_password=$(create_wrapdock_user_password)
+    create_wrapdock_user
 
     default_data_folder="$wrapdock_working_directory/data"
     whiptail --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 70
@@ -156,6 +189,7 @@ first_run_setup() {
     cat <<EOF > "$WRAPDOCK_HOME/wrapdock.env"
 WRAPDOCK_USERNAME=$wrapdock_username
 WRAPDOCK_PASSWORD=$wrapdock_password
+WRAPDOCK_USER_HOME_FOLDER=$wrapdock_user_home_folder
 WEBDOCK_FOLDER=$wrapdock_working_directory
 BACKUP_FOLDER=$backup_folder
 STORAGE_FOLDER=$storage_folder
