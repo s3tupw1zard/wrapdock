@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Path to configuration file
-CONFIG_FILE="$HOME/.wrapdock/wrapdock.env"
+WRAPDOCK_HOME="$HOME/.wrapdock"
 
 # Function to display help information
 show_help() {
@@ -111,10 +111,10 @@ first_run_setup() {
     fi
 
     # Creating folder to store the .wrapdock.env inside.
-    mkdir -p $HOME/.wrapdock
+    mkdir -p $WRAPDOCK_HOME
 
     # Saving the environment variables
-    cat <<EOF > "$CONFIG_FILE"
+    cat <<EOF > "$WRAPDOCK_HOME/wrapdock.env"
 USERNAME=$username
 WEBDOCK_FOLDER=$wrapdock_working_directory
 BACKUP_FOLDER=$backup_folder
@@ -490,10 +490,10 @@ main_menu() {
 }
 
 # Check if the configuration file exists
-if [ ! -f "$CONFIG_FILE" ]; then
+if [ ! -f "$WRAPDOCK_HOME/wrapdock.env" ]; then
     first_run_setup
 else
-    source "$CONFIG_FILE"
+    source "$WRAPDOCK_HOME/wrapdock.env"
 fi
 
 # Main menu entry point
