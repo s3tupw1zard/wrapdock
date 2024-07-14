@@ -92,6 +92,39 @@ EOF
     esac
 }
 
+create_wrapdock_username() {
+    local wrapdock_username=$(whiptail --inputbox "Please type in a username under which this script should always be run:" 10 70 2>&1 >/dev/tty)
+
+    # Check if the username is not empty
+    if [[ -n "$wrapdock_username" ]]; then
+        # Check if the user does not exist
+        if ! id "$wrapdock_username" &>/dev/null; then
+            # Echo the username if it doesn't exist
+            echo $wrapdock_username
+        else
+            whiptail --msgbox "The user $wrapdock_username already exists. Please choose another username." 8 39 --title "Error"
+            create_wrapdock_username
+        fi
+    else
+        whiptail --msgbox "Username cannot be empty. Please provide an username and try again." 8 39 --title "Error"
+        create_wrapdock_username
+    fi
+}
+
+create_wrapdock_user_password() {
+    local wrapdock_password=$(whiptail --inputbox "Please enter a password for the new user:" 10 70 2>&1 >/dev/tty)
+
+    # Check if password is empty
+    if [ -z "$wrapdock_password" ]; then
+        whiptail --msgbox "Password cannot be empty. Please try again." 8 39 --title "Error"
+        create_wrapdock_user_password
+    fi
+
+    whiptail --msgbox "The password is valid. Continuing..." 8 39 --title "Password valid"
+
+    echo $wrapdock_password
+}
+
 # Function for the initial configuration
 first_run_setup() {
     sudo apt install whiptail -y
@@ -99,10 +132,13 @@ first_run_setup() {
     "First time run. Please configure the environment variables on the next screens." 10 70
     
     # Entering the environment variables
-    username=$(whiptail --inputbox "Please type in a username under which this script should always be run:" 10 70 2>&1 >/dev/tty)
+
     wrapdock_working_directory=$(whiptail --inputbox "Please type in your working directory for WebDock: example: /srv/$username/wrapdock" 10 70 2>&1 >/dev/tty)
     backup_folder=$(whiptail --inputbox "Please type in your preferred sub-folder for backups:" 10 70 2>&1 >/dev/tty)
     storage_folder=$(whiptail --inputbox "Please type in a subfolder, where downloads and media should be placed:" 10 70 2>&1 >/dev/tty)
+
+    wrapdock_username=$(create_wrapdock_username)
+    wrapdock_password=$(create_wrapdock_user_password)
 
     default_data_folder="$wrapdock_working_directory/data"
     whiptail --yesno "The default path for data is $default_data_folder. Would you like to customize this?" 10 70
@@ -118,7 +154,8 @@ first_run_setup() {
 
     # Saving the environment variables
     cat <<EOF > "$WRAPDOCK_HOME/wrapdock.env"
-USERNAME=$username
+WRAPDOCK_USERNAME=$wrapdock_username
+WRAPDOCK_PASSWORD=$wrapdock_password
 WEBDOCK_FOLDER=$wrapdock_working_directory
 BACKUP_FOLDER=$backup_folder
 STORAGE_FOLDER=$storage_folder
