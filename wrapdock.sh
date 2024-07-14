@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Source this script itself to ensure all functions are loaded at runtime
+source "$0"
+
 # Path to configuration file
 WRAPDOCK_HOME="$HOME/.wrapdock"
 
